@@ -13,19 +13,23 @@ game.snake = {
   directions: {
     up: {
       row: -1,
-      col: 0
+      col: 0,
+      angle: 0
     },
     down: {
       row: 1,
-      col: 0
+      col: 0,
+      angle: 180
     },
     left: {
       row: 0,
       col: -1,
+      angle: 270
     },
     right: {
       row: 0,
-      col: 1
+      col: 1,
+      angle: 90
     }
   },
   create() {
@@ -41,8 +45,31 @@ game.snake = {
     }
   },
   renderHead() {
+    // получить голову
     const head = this.cells[0];
-    this.game.ctx.drawImage(this.game.images.head, head.x, head.y);
+    // отрисовать голову
+
+    const halfSize = this.game.images.head.width / 2;
+
+    // сохранить исходное состояние контекста
+    this.game.ctx.save();
+
+    // перемещаем точку в начало отсчета координат головы
+    this.game.ctx.translate(head.x, head.y);
+
+    // перемещаем точку начала отсчета координат в центр
+    this.game.ctx.translate(halfSize, halfSize);
+
+    const degree = this.direction.angle;
+
+    // вращаям контекст относительно изображения головы змеи
+    this.game.ctx.rotate(degree * Math.PI / 180);
+
+    // отрисовываем голову с учетом поворота контекста
+    this.game.ctx.drawImage(this.game.images.head, -halfSize, -halfSize);
+
+    //вернуть исходное состояние контекста
+    this.game.ctx.restore();
   },
   renderBody() {
     for (let i = 1; i < this.cells.length; i++) {
@@ -69,6 +96,10 @@ game.snake = {
         break;
     }
 
+    if (!this.moving) {
+      this.game.onSnakeStart();
+    }
+
     this.moving = true;
   },
   move() {
@@ -77,16 +108,20 @@ game.snake = {
     }
     // Получить следующую ячейку
     const cell = this.getNextCell();
-    // если такая есть
-    if (cell) {
+    // если такая ячейка есть
+    if (!cell || this.hasCell(cell) || this.game.board.isBombCell(cell)) {
+      // остановить игру
+      this.game.stop();
+    } else {
       // добавить новую ячейку в snake.cells
       this.cells.unshift(cell);
-
+      // если новая ячейка не является яблоком
       if (!this.game.board.isFoodCell(cell)) {
          // удалить последнюю ячейку из snake.cells
         this.cells.pop();
       } else {
-        this.game.board.createFood();
+         // если новая ячейка является яблоком
+        this.game.onSnakeEat()
       }
     }
   },

@@ -5,6 +5,7 @@ const game = {
   snake: null,
   width: 0,
   height: 0,
+  score: 0,
   dimesions: {
     max: {
       width: 640,
@@ -21,6 +22,12 @@ const game = {
     body: null,
     food: null,
     head: null,
+    bomb: null
+  },
+  sounds: {
+    theme: null,
+    bomb: null,
+    food: null
   },
   start() {
     this.init();
@@ -32,6 +39,11 @@ const game = {
     this.canvas = document.getElementById('my-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.initDimensions();
+    this.setTextFont();
+  },
+  setTextFont() {
+    this.ctx.font = '20px Cactus';
+    this.ctx.fillStyle = '#ffffff';
   },
   initDimensions() {
     const data = {
@@ -68,7 +80,7 @@ const game = {
   },
   preload(onLoadCallback) {
     let loaded = 0;
-    const required = Object.keys(this.images).length;
+    const required = Object.keys(this.images).length + Object.keys(this.sounds).length;
 
     const onAssetLoad = () => {
       loaded += 1;
@@ -77,6 +89,10 @@ const game = {
       }
     }
 
+    this.preloadImages(onAssetLoad);
+    this.preloadSounds(onAssetLoad);
+  },
+  preloadImages(onAssetLoad) {
     Object.keys(this.images).forEach((key) => {
       const image = new Image();
       image.src = `img/${key}.png`;
@@ -84,11 +100,20 @@ const game = {
       this.images[key] = image;
     });
   },
+  preloadSounds(onAssetLoad) {
+    Object.keys(this.sounds).forEach((key) => {
+      const sound = new Audio();
+      sound.src = `sounds/${key}.mp3`;
+      sound.addEventListener('canplaythrough', onAssetLoad);
+      this.sounds[key] = sound;
+    });
+  },
   create() {
     // создание игровых объектов
     this.board.create();
     this.snake.create();
     this.board.createFood();
+    this.board.createBomb();
     // установка игровых событий
     window.addEventListener('keydown', (event) => {
       this.snake.start(event.key);
@@ -102,6 +127,7 @@ const game = {
       this.ctx.drawImage(this.images.background, (this.width - this.images.background.width) / 2, (this.height - this.images.background.height) / 2);
       this.board.render();
       this.snake.render();
+      this.ctx.fillText(`Score: ${this.score}`, 30, 30);
     });
   },
   random(min, max) {
@@ -115,10 +141,35 @@ const game = {
   run() {
     this.create();
     // каждые 150ms обновляем кадр
-    setInterval(() => {
+    this.gameInterval = setInterval(() => {
       this.update();
     }, 150);
+
+    // каждые 3s обновляем кадр
+    this.bombInterval = setInterval(() => {
+      if (this.snake.moving) {
+        this.board.createBomb();
+      }
+    }, 3000);
   },
+  stop() {
+    this.sounds.bomb.play();
+    clearInterval(this.gameInterval);
+    clearInterval(this.bombInterval);
+    alert('Game Over!');
+    window.location.reload();
+  },
+  onSnakeStart() {
+    this.sounds.theme.loop = true;
+    this.sounds.theme.play();
+  },
+  onSnakeEat() {
+    this.score += 1;
+    this.sounds.food.play();
+    this.board.createFood();
+  }
 };
 
-game.start();
+window.addEventListener('load', () => {
+  game.start();
+});

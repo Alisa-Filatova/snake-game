@@ -8,8 +8,7 @@ game.board = {
   createCells() {
     for (let row = 0; row < this.size; row++) {
       for (let col = 0; col < this.size; col++) {
-        let cell = this.createCell(row, col);
-        this.cells.push(cell);
+        this.cells.push(this.createCell(row, col));
       }
     }
   },
@@ -31,33 +30,44 @@ game.board = {
     return this.cells.find(cell => cell.row === row && cell.col === col);
   },
   getRandomAvailableCell() {
-    const cellsList = this.cells.filter(cell => !this.game.snake.hasCell(cell));
+    const cellsList = this.cells.filter(cell => !cell.type && !this.game.snake.hasCell(cell));
     const index = this.game.random(0, cellsList.length - 1);
 
     return cellsList[index];
   },
-  createFood() {
-    // получить текущее яблоко и обнулить флаг
-    let cell = this.cells.find(cell => cell.hasFood);
+  createCellObject(type) {
+    // получить текущую ячейку с данным объектом
+    let cell = this.cells.find(cell => cell.type === type);
 
     if (cell) {
-      cell.hasFood = false;
+      cell.type = false;
     }
 
-    // получить случайную доступную ячейку для яблока
+    // получить случайную доступную ячейку для нового объекта
     cell = this.getRandomAvailableCell();
-    cell.hasFood = true;
+
+    // установить флаг type
+    cell.type = type;
+  },
+  createBomb() {
+    this.createCellObject('bomb');
+  },
+  createFood() {
+    this.createCellObject('food');
   },
   isFoodCell(cell) {
-    return cell.hasFood;
+    return cell.type === 'food';
+  },
+  isBombCell(cell) {
+    return cell.type === 'bomb';
   },
   render() {
     this.cells.forEach(cell => {
       this.game.ctx.drawImage(this.game.images.cell, cell.x, cell.y);
 
-      if (cell.hasFood) {
-        this.game.ctx.drawImage(this.game.images.food, cell.x, cell.y);
+      if (cell.type) {
+        this.game.ctx.drawImage(this.game.images[cell.type], cell.x, cell.y);
       }
-    })
+    });
   }
 };
