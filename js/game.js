@@ -31,6 +31,7 @@ const game = {
   },
   start() {
     this.init();
+
     this.preload(() => {
       this.run();
     });
@@ -84,6 +85,7 @@ const game = {
 
     const onAssetLoad = () => {
       loaded += 1;
+
       if (loaded >= required) {
         onLoadCallback();
       }
@@ -102,21 +104,27 @@ const game = {
   },
   preloadSounds(onAssetLoad) {
     Object.keys(this.sounds).forEach((key) => {
-      const sound = new Audio();
-      sound.src = `sounds/${key}.mp3`;
+      const sound = new Audio(`sounds/${key}.mp3`);
       sound.addEventListener('canplaythrough', onAssetLoad);
       this.sounds[key] = sound;
     });
   },
   create() {
     // создание игровых объектов
-    this.board.create();
+    this.board = new Board(this);
+    this.board.create(this.width, this.height, this.images);
+    this.snake = new Snake(
+      this.board,
+      this.onSnakeStart.bind(this),
+      this.onSnakeEat.bind(this),
+    );
     this.snake.create();
     this.board.createFood();
     this.board.createBomb();
+
     // установка игровых событий
     window.addEventListener('keydown', (event) => {
-      this.snake.start(event.key);
+        this.snake.start(event.key);
     });
   },
   render() {
@@ -125,21 +133,22 @@ const game = {
       // перед тем как отрисовать новый кадр необходимо очистить предыдущий
       this.ctx.clearRect(0, 0, this.width, this.height);
       this.ctx.drawImage(this.images.background, (this.width - this.images.background.width) / 2, (this.height - this.images.background.height) / 2);
-      this.board.render();
-      this.snake.render();
+      this.board.render(this.ctx, this.images);
+      this.snake.render(this.ctx, this.images);
       this.ctx.fillText(`Score: ${this.score}`, 30, 30);
     });
   },
-  random(min, max) {
-    return Math.floor(Math.random() * (max + 1 - min) + min);
-  },
   update() {
     // двигаем змею и отрисовываем новый кадр
-    this.snake.move();
+    if (!this.snake.move()) {
+      this.stop();
+    }
+
     this.render();
   },
   run() {
     this.create();
+
     // каждые 150ms обновляем кадр
     this.gameInterval = setInterval(() => {
       this.update();
